@@ -1,0 +1,231 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name = "eco_bot">
+
+  <!-- Properties -->
+  <xacro:property name="mesh_scale" value="0.0025"/>
+  <xacro:property name="wheel_radius" value="0.125"/>
+  <xacro:property name="wheel_x_offset" value="0.400939"/>
+  <xacro:property name="wheel_y_offset" value="0.21971"/>
+  <xacro:property name="wheel_mass" value="0.34"/>
+  <xacro:property name="wheel_length" value="0.05"/>
+  <xacro:property name="material_mass" value="0.34"/>
+  <xacro:property name="pos" value="1.5708"/>  <!--For wheel to stand upright -->
+  <xacro:property name="base_link_z_offset" value="0.092"/>
+  <xacro:property name="zero_mass" value="0.0"/>
+  <xacro:property name="zero_inertia" value="0.0"/>
+
+  <!-- Materials -->
+  <material name="blue"><color rgba="0 0 1 1"/></material>
+  <material name="black"><color rgba="0 0 0 1"/></material>
+  <material name="red"><color rgba="1 0 0 1"/></material>
+  <material name="beige"><color rgba="${245/255} ${245/255} ${214/255} 1.0"/></material>
+  <material name="gray"><color rgba="0.5 0.5 0.5 1"/></material>
+
+  <!-- Inertia for wheels -->
+  <xacro:property name="I_wheel" value="${(1.0/12.0)*wheel_mass*(3*wheel_radius*wheel_radius+wheel_length*wheel_length)}"/>
+  <xacro:property name="Iz_wheel" value="${0.5*wheel_mass*wheel_radius*wheel_radius}"/>
+
+  <xacro:macro name="inertia_wheel" params="">
+    <inertial>
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+        <mass value="${wheel_mass}"/>
+        <inertia ixx="${I_wheel}" ixy="0.0" ixz="0.0" iyy="${I_wheel}" iyz="0.0" izz="${Iz_wheel}"/>
+    </inertial>
+  </xacro:macro>
+
+   <!-- Inertia for hands -->
+  <xacro:macro name="inertia_hands" params="">
+    <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0"/>
+        <inertia ixx="0.0" ixy="0.0" ixz="0.0"
+           iyy="0.0" iyz="0.0"
+           izz="0.0"/>
+    </inertial> 
+  </xacro:macro >
+
+  <!-- Xacro Macro for Wheels -->
+  <xacro:macro name="wheel_link" params="name rpy">
+    <link name="${name}">
+      <visual>
+        <origin xyz="0 0 0" rpy="${rpy}"/>
+        <geometry>
+          <mesh filename="package://eco_warehouse_bot/meshes/Simple_wheel_v1.stl" scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${rpy}"/>
+        <geometry>
+          <mesh filename="package://eco_warehouse_bot/meshes/Simple_wheel_v1.stl" scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+        </geometry>
+      </collision>
+      <xacro:inertia_wheel/>
+    </link>
+  </xacro:macro>
+
+  <xacro:macro name="wheel_joint" params="name parent child x y z rpy">
+    <joint name="${name}" type="continuous">
+      <origin xyz="${x} ${y} ${z}" rpy="${rpy}"/>
+      <parent link="${parent}"/>
+      <child link="${child}"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Xacro Macro for Temperature & Humidity Sensor -->
+  <xacro:macro name="sense_link" params="name rpy xyz">
+    <link name="${name}">
+      <visual>
+        <origin xyz="${xyz}" rpy="${rpy}"/>
+        <geometry>
+          <mesh filename="package://eco_warehouse_bot/meshes/Temp_Humd_sensor.stl" scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+        </geometry>
+        <material name="grey"/>
+      </visual>
+      <collision>
+        <origin xyz="${xyz}" rpy="${rpy}"/>
+        <geometry>
+          <mesh filename="package://eco_warehouse_bot/meshes/Temp_Humd_sensor.stl" scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+        </geometry>
+      </collision>
+      <xacro:inertia_hands/>
+    </link>
+  </xacro:macro>
+
+  <xacro:macro name="sense_joint" params="name parent child x y z rpy">
+    <joint name="${name}" type="fixed">
+      <origin xyz="${x} ${y} ${z}" rpy="${rpy}"/>
+      <parent link="${parent}"/>
+      <child link="${child}"/>
+      <axis xyz="0 0 0"/>
+      <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+    </joint>
+  </xacro:macro>
+
+
+  <!-- Empty World -->
+  <link name="world"/>
+
+  <!-- Base Link -->
+  <link name="base_link">
+    <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="1.017"/>
+        <inertia
+           ixx="0.01127" ixy="0.0"  ixz="0.0"
+           iyy="0.01631" iyz="0.0"
+           izz="0.02648"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 ${base_link_z_offset}" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://eco_warehouse_bot/meshes/Motor_base_assembeled_updated_v3.stl" scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+      </geometry>
+      <material name="gray"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.125" rpy="0 0 1.5708"/>
+      <geometry>
+        <mesh filename="package://eco_warehouse_bot/meshes/motor_base_collision.stl" scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Outer Shell -->
+  <link name="outer_shell">
+    <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <mass value="4.28" />
+        <inertia 
+           ixx="0.1815" iyy="0.2101" izz="0.1139"
+           ixy="0.0"   ixz="0.0"    iyz="0.0" />
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0832485" rpy="0 0 0"/>
+      <geometry>
+            <mesh filename="package://eco_warehouse_bot/meshes/outer_shell.stl" scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+      </geometry>
+      <material name="beige"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 1.038479" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.095375 0.90424 1.40208"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- LiDAR -->
+  <link name="lidar">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.6315"/>
+      <inertia 
+         ixx="0.00279" ixy="0.0"  ixz="0.0"
+         iyy="0.00354" iyz="0.0"
+         izz="0.00319"/>
+    </inertial>
+    <visual name="">
+      <origin xyz="0.0 -0.1905 0.03175" rpy="0.0 0.0 0.0"/>
+      <geometry>
+          <mesh filename="package://eco_warehouse_bot/meshes/lidar.stl" scale="${mesh_scale} ${mesh_scale} ${mesh_scale}"/>
+      </geometry>
+      <material name="gray"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.0 0.0 0.0"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Temp_Humid Sensor -->
+  <xacro:sense_link name="sense_1" xyz="-.58735 0 1.547403" rpy="${pos} 0 ${pos}"/>
+  <xacro:sense_link name="sense_2" xyz="0.58735 0 1.547403" rpy="${pos} 0 4.712"/>
+
+  <!-- sensor Joints -->
+  <xacro:sense_joint name="sense_1_base" parent="outer_shell" child="sense_1" x="0.0" y="0" z="0.0" rpy="0 0 0"/>
+  <xacro:sense_joint name="sense_2_base" parent="outer_shell" child="sense_2" x="0.0" y="0" z="0.0" rpy="0 0 0"/>
+
+  <!-- Wheels -->
+  <xacro:wheel_link name="wheel_1" rpy="${pos} 0 ${pos}"/>
+  <xacro:wheel_link name="wheel_2" rpy="${pos} 0 ${pos}"/>
+  <xacro:wheel_link name="wheel_3" rpy="${pos} 0 ${-pos*3}"/>
+  <xacro:wheel_link name="wheel_4" rpy="${pos} 0 ${-pos*3}"/>
+
+  <!-- Wheel Joints -->
+  <xacro:wheel_joint name="wheel_1_base" parent="base_link" child="wheel_1" x="${wheel_x_offset}" y="${wheel_y_offset}" z="${wheel_radius}" rpy="0 0 0"/>
+  <xacro:wheel_joint name="wheel_2_base" parent="base_link" child="wheel_2" x="${wheel_x_offset}" y="-${wheel_y_offset}" z="${wheel_radius}" rpy="0 0 0"/>
+  <xacro:wheel_joint name="wheel_3_base" parent="base_link" child="wheel_3" x="-${wheel_x_offset}" y="${wheel_y_offset}" z="${wheel_radius}" rpy="0 0 3.14"/>
+  <xacro:wheel_joint name="wheel_4_base" parent="base_link" child="wheel_4" x="-${wheel_x_offset}" y="-${wheel_y_offset}" z="${wheel_radius}" rpy="0 0 3.14"/>
+
+  <!-- Outer Shell Joint -->
+  <joint name="Shell_to_base" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="outer_shell"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+
+  <!-- World Joint -->
+  <joint name="world_to_base" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="world"/>
+    <child link="base_link"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+
+  <!-- lidar Joint -->
+  <joint name="lidar_to_shell" type="fixed">
+    <origin xyz="0 0.0212725 1.739265" rpy="0 0 0"/>
+    <parent link="outer_shell"/>
+    <child link="lidar"/>
+    <axis xyz="0 0 "/>
+    <limit lower="0.0" upper="0.0" effort="0.0" velocity="0.0"/>
+  </joint>
+
+</robot>
